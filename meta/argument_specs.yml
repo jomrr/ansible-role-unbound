@@ -1,0 +1,392 @@
+---
+# role: unbound
+# file: meta/argument_specs.yml
+
+argument_specs:
+  main:
+    short_description: Configure a validating Unbound resolver and DNS-over-TLS service.
+    options:
+      unbound_interfaces:
+        type: list
+        description: Listener addresses in address@port notation. Add a TLS-port listener
+          and both tls-service-key and tls-service-pem in unbound_server to serve DoT.
+        default:
+          - 127.0.0.1@53
+          - ::1@53
+        elements: str
+      unbound_access_control:
+        type: list
+        description: Client network access policies. The default refuses clients outside
+          loopback.
+        default:
+          - net: 0.0.0.0/0
+            action: refuse
+          - net: ::/0
+            action: refuse
+          - net: 127.0.0.0/8
+            action: allow
+          - net: ::1/128
+            action: allow
+        elements: dict
+        options:
+          net:
+            type: str
+            description: IPv4 or IPv6 network in CIDR notation.
+            required: true
+          action:
+            type: str
+            description: Native Unbound access action.
+            required: true
+            choices:
+              - deny
+              - refuse
+              - allow
+              - allow_setrd
+              - allow_snoop
+              - deny_non_local
+              - refuse_non_local
+      unbound_server_defaults:
+        type: dict
+        description: Portable server baseline. Native option names; strings are quoted,
+          booleans become yes/no and lists repeat a directive. Prefer unbound_server for
+          individual changes.
+        default:
+          interface-automatic: false
+          ip-transparent: false
+          ip-freebind: false
+          do-ip4: true
+          do-ip6: true
+          do-udp: true
+          do-tcp: true
+          tls-port: 853
+          module-config: respip validator iterator
+          val-permissive-mode: false
+          ignore-cd-flag: true
+          val-clean-additional: true
+          hide-identity: true
+          hide-version: true
+          hide-trustanchor: true
+          minimal-responses: true
+          harden-short-bufsize: true
+          harden-glue: true
+          harden-dnssec-stripped: true
+          harden-below-nxdomain: true
+          qname-minimisation: true
+          qname-minimisation-strict: false
+          aggressive-nsec: true
+          do-not-query-localhost: true
+          harden-referral-path: false
+          harden-algo-downgrade: false
+          harden-large-queries: false
+          use-caps-for-id: false
+          private-address:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+            - 169.254.0.0/16
+            - fc00::/7
+            - fe80::/10
+            - ::ffff:0:0/96
+          num-threads: 2
+          msg-cache-size: 32m
+          rrset-cache-size: 64m
+          num-queries-per-thread: 1024
+          outgoing-range: 2048
+          incoming-num-tcp: 128
+          outgoing-num-tcp: 64
+          so-reuseport: true
+          so-rcvbuf: 0
+          so-sndbuf: 0
+          edns-buffer-size: 1232
+          max-udp-size: 1232
+          prefetch: true
+          prefetch-key: true
+          cache-min-ttl: 0
+          cache-max-ttl: 86400
+          cache-max-negative-ttl: 60
+          serve-expired: false
+          use-syslog: true
+          verbosity: 1
+          log-queries: false
+          log-replies: false
+          log-tag-queryreply: true
+          log-servfail: true
+          val-log-level: 1
+          statistics-interval: 0
+          statistics-cumulative: true
+          extended-statistics: true
+      unbound_server:
+        type: dict
+        description: Native server options merged over platform defaults and unbound_server_defaults.
+          Lists replace the baseline list. Use dedicated variables for interfaces, ACLs,
+          local zones and records.
+        default: {}
+      unbound_remote_control_defaults:
+        type: dict
+        description: Local control baseline. The default socket is /run/unbound.ctl on Debian/Ubuntu
+          and /run/unbound/control.sock on RedHat/Suse.
+        default:
+          control-enable: false
+          control-use-cert: false
+      unbound_remote_control:
+        type: dict
+        description: Native remote-control options merged over unbound_remote_control_defaults.
+          Certificate-free control is intended only for a Unix socket.
+        default: {}
+      unbound_forward_zones:
+        type: list
+        description: Forward zones. Use forward-tls-upstream with address@853#certificate-name
+          for authenticated DoT.
+        default: []
+        elements: dict
+        options:
+          name:
+            type: str
+            description: Fully qualified zone name.
+            required: true
+          forward-addr:
+            type: list
+            description: IP endpoints in address@port#TLS-name notation.
+            elements: str
+          forward-host:
+            type: list
+            description: Nameserver hostnames; avoid circular bootstrap dependencies.
+            elements: str
+          forward-first:
+            type: bool
+            description: Allow fallback to less specific resolution; native default is false.
+          forward-tls-upstream:
+            type: bool
+            description: Use DoT with the configured CA bundle and endpoint authentication
+              name.
+          forward-tcp-upstream:
+            type: bool
+            description: Use TCP for this zone.
+          forward-no-cache:
+            type: bool
+            description: Disable caching for this zone.
+      unbound_stub_zones:
+        type: list
+        description: Stub zones using authoritative DNS servers, optionally over DoT.
+        default: []
+        elements: dict
+        options:
+          name:
+            type: str
+            description: Fully qualified zone name.
+            required: true
+          stub-addr:
+            type: list
+            description: IP endpoints in address@port#TLS-name notation.
+            elements: str
+          stub-host:
+            type: list
+            description: Nameserver hostnames; avoid circular bootstrap dependencies.
+            elements: str
+          stub-first:
+            type: bool
+            description: Allow fallback to less specific resolution; native default is false.
+          stub-tls-upstream:
+            type: bool
+            description: Use DoT with the configured CA bundle and endpoint authentication
+              name.
+          stub-tcp-upstream:
+            type: bool
+            description: Use TCP for this zone.
+          stub-no-cache:
+            type: bool
+            description: Disable caching for this zone.
+          stub-prime:
+            type: bool
+            description: Prime nameservers for this authoritative zone.
+      unbound_auth_zones:
+        type: list
+        description: Authority zones loaded from static files, AXFR/IXFR or HTTP(S) zonefile
+          downloads.
+        default: []
+        elements: dict
+        options:
+          name:
+            type: str
+            description: Fully qualified zone name.
+            required: true
+          zonefile:
+            type: str
+            description: Absolute path to a static zone file or writable transfer/download
+              cache.
+          primary:
+            type: list
+            description: AXFR/IXFR primary endpoints.
+            elements: str
+          url:
+            type: list
+            description: HTTP(S) URLs serving complete DNS zone files.
+            elements: str
+          allow-notify:
+            type: list
+            description: Permitted NOTIFY senders.
+            elements: str
+          for-downstream:
+            type: bool
+            description: Answer clients directly from this authority zone.
+          for-upstream:
+            type: bool
+            description: Use this authority zone during recursion.
+          fallback-enabled:
+            type: bool
+            description: Allow ordinary recursion when this authority zone is unavailable.
+          zonemd-check:
+            type: bool
+            description: Check a ZONEMD digest when present.
+          zonemd-reject-absence:
+            type: bool
+            description: Require a ZONEMD digest.
+      unbound_rpz_zones:
+        type: list
+        description: Response policy zones in evaluation order. Local allow zones must precede
+          external block feeds; HTTP(S) sources must provide real RPZ zone files.
+        default: []
+        elements: dict
+        options:
+          name:
+            type: str
+            description: Fully qualified zone name.
+            required: true
+          zonefile:
+            type: str
+            description: Absolute path to a static zone file or writable transfer/download
+              cache.
+          primary:
+            type: list
+            description: AXFR/IXFR primary endpoints.
+            elements: str
+          url:
+            type: list
+            description: HTTP(S) URLs serving complete DNS zone files.
+            elements: str
+          allow-notify:
+            type: list
+            description: Permitted NOTIFY senders.
+            elements: str
+          for-downstream:
+            type: bool
+            description: Answer clients directly from this authority zone.
+          for-upstream:
+            type: bool
+            description: Use this authority zone during recursion.
+          fallback-enabled:
+            type: bool
+            description: Allow ordinary recursion when this authority zone is unavailable.
+          zonemd-check:
+            type: bool
+            description: Check a ZONEMD digest when present.
+          zonemd-reject-absence:
+            type: bool
+            description: Require a ZONEMD digest.
+          rpz-action-override:
+            type: str
+            description: Override the actions in this policy zone.
+            choices:
+              - nxdomain
+              - nodata
+              - passthru
+              - drop
+              - disabled
+              - cname
+          rpz-cname-override:
+            type: str
+            description: CNAME target for the cname override action.
+          rpz-log:
+            type: bool
+            description: Log matches of this policy zone.
+          rpz-log-name:
+            type: str
+            description: Name identifying this policy zone in logs.
+          rpz-signal-nxdomain-ra:
+            type: bool
+            description: Signal RPZ NXDOMAIN responses by clearing RA.
+      unbound_local_zones:
+        type: list
+        description: Local zone policies. Transparent internal forward/reverse zones prevent
+          built-in reverse-zone handling from intercepting queries.
+        default: []
+        elements: dict
+        options:
+          name:
+            type: str
+            description: Fully qualified local zone name.
+            required: true
+          type:
+            type: str
+            description: Native local zone response policy.
+            required: true
+            choices:
+              - deny
+              - refuse
+              - static
+              - transparent
+              - typetransparent
+              - redirect
+              - inform
+              - inform_deny
+              - inform_redirect
+              - always_transparent
+              - always_refuse
+              - always_nxdomain
+              - always_nodata
+              - always_deny
+              - always_null
+              - noview
+              - nodefault
+      unbound_local_data:
+        type: list
+        description: Local records in DNS presentation format, without additional Unbound
+          quoting.
+        default: []
+        elements: str
+      unbound_local_data_ptr:
+        type: list
+        description: PTR shorthand records in address hostname notation.
+        default: []
+        elements: str
+      unbound_zone_files:
+        type: list
+        description: Static zone files written below /etc/unbound. Each content value is
+          a complete DNS zone file. Files written by the role are removed when no longer
+          declared or referenced by an auth/RPZ zone.
+        default: []
+        elements: dict
+        options:
+          name:
+            type: str
+            description: Zone filename relative to /etc/unbound; parent directories must
+              exist.
+            required: true
+          content:
+            type: str
+            description: Complete zone content including SOA and NS records.
+            required: true
+      unbound_include_files:
+        type: list
+        description: Configuration files in the native conf.d or local.d directories. Undeclared
+          native .conf files are removed except the role control configuration and packaged
+          Debian DNSSEC anchor include.
+        default: []
+        elements: dict
+        options:
+          path:
+            type: str
+            description: Absolute filename in a native include directory; parent directories
+              must exist.
+            required: true
+          content:
+            type: str
+            description: Native configuration content, with a section header in conf.d and
+              server options in local.d.
+            required: true
+      unbound_includes:
+        type: list
+        description: Additional top-level include paths or globs outside the native include
+          directories.
+        default: []
+        elements: str

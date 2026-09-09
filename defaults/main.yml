@@ -1,0 +1,170 @@
+---
+# role: unbound
+# file: defaults/main.yml
+
+# DNS and DoT listener addresses in native address@port notation.
+unbound_interfaces:
+  - 127.0.0.1@53
+  - ::1@53
+# - 192.0.2.53@853
+
+# Client networks and their resolver access policy, most specific prefix wins.
+unbound_access_control:
+  - net: 0.0.0.0/0
+    action: refuse
+  - net: ::/0
+    action: refuse
+  - net: 127.0.0.0/8
+    action: allow
+  - net: ::1/128
+    action: allow
+# - net: 192.0.2.0/24
+#   action: allow
+
+# Portable baseline for native server options; strings are quoted automatically.
+unbound_server_defaults:
+  interface-automatic: false
+  ip-transparent: false
+  ip-freebind: false
+  do-ip4: true
+  do-ip6: true
+  do-udp: true
+  do-tcp: true
+  tls-port: 853
+  module-config: respip validator iterator
+  val-permissive-mode: false
+  ignore-cd-flag: true
+  val-clean-additional: true
+  hide-identity: true
+  hide-version: true
+  hide-trustanchor: true
+  minimal-responses: true
+  harden-short-bufsize: true
+  harden-glue: true
+  harden-dnssec-stripped: true
+  harden-below-nxdomain: true
+  qname-minimisation: true
+  qname-minimisation-strict: false
+  aggressive-nsec: true
+  do-not-query-localhost: true
+  harden-referral-path: false
+  harden-algo-downgrade: false
+  harden-large-queries: false
+  use-caps-for-id: false
+  private-address:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - 169.254.0.0/16
+    - fc00::/7
+    - fe80::/10
+    - ::ffff:0:0/96
+  num-threads: 2
+  msg-cache-size: 32m
+  rrset-cache-size: 64m
+  num-queries-per-thread: 1024
+  outgoing-range: 2048
+  incoming-num-tcp: 128
+  outgoing-num-tcp: 64
+  so-reuseport: true
+  so-rcvbuf: 0
+  so-sndbuf: 0
+  edns-buffer-size: 1232
+  max-udp-size: 1232
+  prefetch: true
+  prefetch-key: true
+  cache-min-ttl: 0
+  cache-max-ttl: 86400
+  cache-max-negative-ttl: 60
+  serve-expired: false
+  use-syslog: true
+  verbosity: 1
+  log-queries: false
+  log-replies: false
+  log-tag-queryreply: true
+  log-servfail: true
+  val-log-level: 1
+  statistics-interval: 0
+  statistics-cumulative: true
+  extended-statistics: true
+
+# Native server options merged over the platform values and portable baseline.
+unbound_server: {}
+# tls-service-key: /etc/unbound/tls/server.key
+# tls-service-pem: /etc/unbound/tls/fullchain.pem
+# private-domain: [ad.example.org.]
+# domain-insecure: [ad.example.org., 2.0.192.in-addr.arpa.]
+# use-syslog: false
+# logfile: ""
+# log-queries: true
+# log-replies: true
+
+# Local control policy; the socket follows the distribution's permitted paths.
+unbound_remote_control_defaults:
+  control-enable: false
+  control-use-cert: false
+
+# Native remote-control options merged over the local control policy.
+unbound_remote_control: {}
+# control-enable: true
+
+# Forward zones using native Unbound keys, including authenticated DoT upstreams.
+unbound_forward_zones: []
+# - name: .
+#   forward-addr: [9.9.9.9@853#dns.quad9.net]
+#   forward-tls-upstream: true
+#   forward-first: false
+
+# Stub zones pointing to authoritative DNS servers using native Unbound keys.
+unbound_stub_zones: []
+# - name: example.org.
+#   stub-addr: [192.0.2.10@53, 192.0.2.11@53]
+#   stub-first: false
+
+# Authority zones for zonefile, AXFR/IXFR or HTTP(S) sources.
+unbound_auth_zones: []
+# - name: example.org.
+#   primary: [192.0.2.10]
+#   zonefile: /var/lib/unbound/auth/example.org.zone
+#   for-downstream: false
+#   for-upstream: true
+
+# Ordered response policy zones; place local allow rules before external feeds.
+unbound_rpz_zones: []
+# - name: local-allow.rpz.invalid.
+#   zonefile: /etc/unbound/rpz-allow.zone
+#   rpz-log: false
+#   for-downstream: false
+
+# Local zone policies, including transparent overrides of built-in reverse zones.
+unbound_local_zones: []
+# - name: ad.example.org.
+#   type: transparent
+
+# Local resource records in native DNS presentation format.
+unbound_local_data: []
+# - resolver.example.org. 300 IN A 192.0.2.53
+
+# PTR shorthand records in native address hostname notation.
+unbound_local_data_ptr: []
+# - 192.0.2.53 resolver.example.org.
+
+# Static zone files relative to /etc/unbound, with complete DNS zone content.
+unbound_zone_files: []
+# - name: rpz-allow.zone
+#   content: |
+#     $ORIGIN local-allow.rpz.invalid.
+#     @ 3600 IN SOA localhost. hostmaster.localhost. 1 3600 600 86400 60
+#     @ 3600 IN NS localhost.
+#     trusted.example.org 60 IN CNAME rpz-passthru.
+
+# Configuration files in native include directories, removed when undeclared.
+unbound_include_files: []
+# - path: /etc/unbound/conf.d/site.conf
+#   content: |
+#     server:
+#         local-data: "resolver.example.org. 300 IN A 192.0.2.53"
+
+# Additional top-level include paths outside the native include directories.
+unbound_includes: []
+# - /etc/unbound/site.d/*.conf

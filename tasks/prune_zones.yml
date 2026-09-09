@@ -1,0 +1,39 @@
+---
+# role: unbound
+# file: tasks/prune_zones.yml
+
+- name: UNBOUND | Find managed static zone files
+  become: true
+  become_user: root
+  ansible.builtin.find:
+    paths: /etc/unbound
+    recurse: true
+    contains: '^; Managed by ansible\.$'
+    excludes: '*~'
+  register: __unbound_existing_zones
+
+- name: UNBOUND | Find cached zone files
+  become: true
+  become_user: root
+  ansible.builtin.find:
+    paths:
+      - /var/lib/unbound/rpz
+      - /var/lib/unbound/auth
+    recurse: true
+    file_type: file
+    excludes: '*.tmp[0-9]*'
+  register: __unbound_cached_zones
+
+- name: UNBOUND | Delete undeclared zone files
+  become: true
+  become_user: root
+  ansible.builtin.file:
+    path: '{{ __unbound_obsolete_zone }}'
+    state: absent
+  loop: >-
+    {{ (__unbound_existing_zones.files + __unbound_cached_zones.files) | map(attribute='path')
+       | difference((unbound_zone_files | map(attribute='name') | map('regex_replace', '^', '/etc/unbound/') | list)
+                    + ((unbound_auth_zones + unbound_rpz_zones) | selectattr('zonefile', 'defined')
+                       | map(attribute='zonefile') | list)) }}
+  loop_control:
+    loop_var: __unbound_obsolete_zone

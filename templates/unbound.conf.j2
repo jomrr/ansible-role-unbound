@@ -1,0 +1,44 @@
+# Managed by ansible.
+# file: {{ template_destpath }}
+
+{% for __unbound_section, __unbound_entries in [
+    ('server', [__unbound_platform_server | combine(unbound_server_defaults, unbound_server)]),
+    ('forward-zone', unbound_forward_zones),
+    ('stub-zone', unbound_stub_zones),
+    ('auth-zone', unbound_auth_zones),
+    ('rpz', unbound_rpz_zones)
+] %}
+{% for __unbound_entry in __unbound_entries %}
+{{ __unbound_section }}:
+{% for __unbound_key, __unbound_value in __unbound_entry.items() %}
+{% for __unbound_element in (__unbound_value if __unbound_value is sequence and __unbound_value is not string else [__unbound_value]) %}
+    {{ __unbound_key }}: {% if __unbound_element is boolean %}{{ __unbound_element | ternary('yes', 'no') }}{% elif __unbound_element is string %}{{ __unbound_element | to_json }}{% else %}{{ __unbound_element }}{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% if __unbound_section == 'server' %}
+{% for __unbound_interface in unbound_interfaces %}
+    interface: {{ __unbound_interface | to_json }}
+{% endfor %}
+{% for __unbound_acl in unbound_access_control %}
+    access-control: {{ __unbound_acl.net }} {{ __unbound_acl.action }}
+{% endfor %}
+{% for __unbound_zone in unbound_local_zones %}
+    local-zone: {{ __unbound_zone.name | to_json }} {{ __unbound_zone.type }}
+{% endfor %}
+{% for __unbound_record in unbound_local_data %}
+    local-data: '{{ __unbound_record | replace("'", "\\'") }}'
+{% endfor %}
+{% for __unbound_record in unbound_local_data_ptr %}
+    local-data-ptr: {{ __unbound_record | to_json }}
+{% endfor %}
+{% for __unbound_include in __unbound_server_includes %}
+    include: {{ __unbound_include | to_json }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% for __unbound_include in [__unbound_conf_dir ~ '/*.conf'] + unbound_includes %}
+include-toplevel: {{ __unbound_include | to_json }}
+{% endfor %}

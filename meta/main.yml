@@ -1,0 +1,18 @@
+---
+# role: unbound
+# file: meta/main.yml
+
+galaxy_info:
+  author: Jonas Mauer
+  description: Ansible role for a hardened Unbound DNS resolver with DoT, DNSSEC and response policy zones.
+  galaxy_tags:
+    - dns
+    - unbound
+    - dnssec
+    - tls
+    - resolver
+  issue_tracker_url: https://github.com/jomrr/ansible-role-unbound/issues
+  license: MIT
+  min_ansible_version: "2.20"
+  namespace: jomrr
+  role_name: unbound

@@ -1,0 +1,76 @@
+---
+# role: unbound
+# file: tasks/configure.yml
+
+- name: UNBOUND | Install static zone files
+  become: true
+  become_user: root
+  ansible.builtin.copy:
+    content: |
+      ; Managed by ansible.
+      ; file: /etc/unbound/{{ __unbound_zone_file.name }}
+      {{ __unbound_zone_file.content }}
+    dest: /etc/unbound/{{ __unbound_zone_file.name }}
+    owner: root
+    group: unbound
+    mode: '0640'
+    backup: true
+  loop: '{{ unbound_zone_files }}'
+  loop_control:
+    loop_var: __unbound_zone_file
+    label: '{{ __unbound_zone_file.name }}'
+  notify: restart resolver
+
+- name: UNBOUND | Install declared configuration includes
+  become: true
+  become_user: root
+  ansible.builtin.copy:
+    content: '{{ __unbound_include_file.content }}'
+    dest: '{{ __unbound_include_file.path }}'
+    owner: root
+    group: unbound
+    mode: '0640'
+    backup: true
+  loop: '{{ unbound_include_files }}'
+  loop_control:
+    loop_var: __unbound_include_file
+    label: '{{ __unbound_include_file.path }}'
+  notify: restart resolver
+
+- name: UNBOUND | Remove obsolete configuration includes
+  ansible.builtin.import_tasks: prune_includes.yml
+
+- name: UNBOUND | Configure local control interface
+  become: true
+  become_user: root
+  ansible.builtin.template:
+    src: remote-control.conf.j2
+    dest: '{{ __unbound_conf_dir }}/remote-control.conf'
+    owner: root
+    group: unbound
+    mode: '0640'
+    backup: true
+    validate: '{{ __unbound_validate_command }}'
+  notify: restart resolver
+
+- name: UNBOUND | Configure resolver and zones
+  become: true
+  become_user: root
+  ansible.builtin.template:
+    src: unbound.conf.j2
+    dest: /etc/unbound/unbound.conf
+    owner: root
+    group: unbound
+    mode: '0640'
+    backup: true
+    validate: '{{ __unbound_validate_command }}'
+  notify: restart resolver
+
+- name: UNBOUND | Validate complete configuration including drop-ins
+  become: true
+  become_user: root
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/unbound-checkconf
+      - /etc/unbound/unbound.conf
+  changed_when: false

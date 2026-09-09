@@ -1,0 +1,145 @@
+---
+# role: unbound
+# file: molecule/default/molecule.yml
+
+dependency:
+  name: "galaxy"
+  options:
+    requirements-file: "${MOLECULE_PROJECT_DIRECTORY}/collections.yml"
+    role-file: "${MOLECULE_PROJECT_DIRECTORY}/collections.yml"
+driver:
+  name: "podman"
+provisioner:
+  name: "ansible"
+  config_options:
+    defaults:
+      forks: 8
+      interpreter_python: "auto_silent"
+      allow_world_readable_tmpfiles: true
+      callbacks_enabled: "ansible.posix.profile_tasks,ansible.posix.timer"
+      callback_result_format: "yaml"
+      remote_tmp: "/tmp/.ansible/tmp"
+    ssh_connection:
+      pipelining: true
+  log: true
+  playbooks:
+    converge: "../resources/playbooks/converge.yml"
+    verify: "../resources/playbooks/verify.yml"
+    prepare: "../resources/playbooks/prepare.yml"
+  inventory:
+    group_vars:
+      all:
+        unbound_interfaces:
+          - "0.0.0.0@53"
+          - "127.0.0.1@853"
+        unbound_server:
+          tls-service-key: "/etc/unbound/tls/molecule.key"
+          tls-service-pem: "/etc/unbound/tls/molecule.pem"
+          tls-cert-bundle: "/etc/unbound/tls/molecule.pem"
+          do-not-query-localhost: false
+          domain-insecure:
+            - "forward.test."
+            - "stub.test."
+            - "auth.test."
+            - "encrypted.test."
+            - "bad-tls.test."
+            - "2.0.192.in-addr.arpa."
+          private-domain:
+            - "private-allowed.forward.test."
+          use-syslog: false
+          logfile: ""
+          trust-anchor:
+            - "bogus.test. DS 12345 13 2 0000000000000000000000000000000000000000000000000000000000000000"
+        unbound_local_zones:
+          - name: "test."
+            type: "transparent"
+          - name: "2.0.192.in-addr.arpa."
+            type: "transparent"
+        unbound_local_data:
+          - "local.molecule.test. 60 IN A 192.0.2.53"
+          - "text.molecule.test. 60 IN TXT \"hello unbound's resolver\""
+        unbound_local_data_ptr:
+          - "192.0.2.53 local.molecule.test."
+        unbound_forward_zones:
+          - name: "forward.test."
+            forward-addr:
+              - "127.0.0.1@1053"
+            forward-first: false
+            forward-no-cache: true
+          - name: "2.0.192.in-addr.arpa."
+            forward-addr:
+              - "127.0.0.1@1053"
+            forward-first: false
+            forward-no-cache: true
+          - name: "encrypted.test."
+            forward-addr:
+              - "127.0.0.1@1853#upstream.molecule.test"
+            forward-tls-upstream: true
+            forward-first: false
+          - name: "bad-tls.test."
+            forward-addr:
+              - "127.0.0.2@1853#wrong.molecule.test"
+            forward-tls-upstream: true
+            forward-first: false
+          - name: "bogus.test."
+            forward-addr:
+              - "127.0.0.1@1053"
+            forward-first: false
+        unbound_stub_zones:
+          - name: "stub.test."
+            stub-addr:
+              - "127.0.0.1@1053"
+            stub-prime: false
+            stub-first: false
+        unbound_auth_zones:
+          - name: "auth.test."
+            zonefile: "/etc/unbound/auth-test.zone"
+            for-downstream: true
+            for-upstream: true
+        unbound_rpz_zones:
+          - name: "allow.rpz.test."
+            zonefile: "/etc/unbound/allow-test.rpz"
+            rpz-log: false
+            for-downstream: false
+          - name: "block.rpz.test."
+            url:
+              - "https://127.0.0.1:18443/block.rpz"
+            zonefile: "/var/lib/unbound/rpz/block-test.rpz"
+            rpz-action-override: "nxdomain"
+            rpz-log: true
+            for-downstream: false
+        unbound_include_files:
+          - path: "/etc/unbound/{{ (ansible_facts.os_family == 'Debian') | ternary('unbound.conf.d', 'conf.d') }}/molecule.conf"
+            content: |
+              server:
+                  local-data: "included.molecule.test. 60 IN A 192.0.2.90"
+          - path: "/etc/unbound/{{ (ansible_facts.os_family == 'Debian') | ternary('unbound.conf.d', 'local.d') }}/server-molecule.conf"
+            content: |
+              {% if ansible_facts.os_family == 'Debian' %}
+              server:
+              {% endif %}
+                  local-data: "server-include.molecule.test. 60 IN A 192.0.2.91"
+        unbound_zone_files:
+          - name: "auth-test.zone"
+            content: |
+              $$ORIGIN auth.test.
+              @ 60 IN SOA ns.auth.test. hostmaster.auth.test. 1 60 60 3600 60
+              @ 60 IN NS ns.auth.test.
+              ns 60 IN A 192.0.2.53
+              www 60 IN A 192.0.2.82
+          - name: "allow-test.rpz"
+            content: |
+              $$ORIGIN allow.rpz.test.
+              @ 60 IN SOA localhost. hostmaster.localhost. 1 60 60 3600 60
+              @ 60 IN NS localhost.
+              allowed.forward.test 60 IN CNAME rpz-passthru.
+verifier:
+  name: "ansible"
+scenario:
+  name: "default"
+platforms:
+  - name: "unbound"
+    image: "docker.io/${uns:-jomrr}/molecule-${img:-fedora}:${tag:-latest}"
+    pre_build_image: true
+    override_command: false
+    systemd: "true"

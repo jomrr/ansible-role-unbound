@@ -1,0 +1,27 @@
+---
+# role: unbound
+# file: vars/Debian.yml
+
+__unbound_packages:
+  - unbound
+  - dns-root-data
+  - ca-certificates
+__unbound_conf_dir: /etc/unbound/unbound.conf.d
+__unbound_required_includes:
+  - /etc/unbound/unbound.conf.d/remote-control.conf
+  - /etc/unbound/unbound.conf.d/root-auto-trust-anchor-file.conf
+__unbound_config_directories:
+  - /etc/unbound/unbound.conf.d
+  - /etc/unbound/tls
+__unbound_control_socket: /run/unbound.ctl
+__unbound_server_includes: []
+__unbound_anchor_seeds:
+  - src: /usr/share/dns/root.key
+    dest: /var/lib/unbound/root.key
+__unbound_platform_server:
+  username: unbound
+  chroot: ""
+  directory: /etc/unbound
+  pidfile: /run/unbound.pid
+  tls-cert-bundle: /etc/ssl/certs/ca-certificates.crt
+__unbound_validate_command: /usr/sbin/unbound-checkconf %s

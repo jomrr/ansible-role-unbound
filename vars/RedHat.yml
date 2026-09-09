@@ -1,0 +1,34 @@
+---
+# role: unbound
+# file: vars/RedHat.yml
+
+__unbound_packages:
+  - unbound
+  - unbound-anchor
+  - ca-certificates
+__unbound_conf_dir: /etc/unbound/conf.d
+__unbound_required_includes:
+  - /etc/unbound/conf.d/remote-control.conf
+__unbound_config_directories:
+  - /etc/unbound/conf.d
+  - /etc/unbound/local.d
+  - /etc/unbound/keys.d
+  - /etc/unbound/tls
+__unbound_control_socket: /run/unbound/control.sock
+__unbound_server_includes:
+  - /etc/unbound/local.d/*.conf
+__unbound_anchor_seeds: []
+__unbound_platform_server:
+  username: unbound
+  chroot: ""
+  directory: /etc/unbound
+  pidfile: /run/unbound/unbound.pid
+  auto-trust-anchor-file: /var/lib/unbound/root.key
+  trusted-keys-file: /etc/unbound/keys.d/*.key
+  tls-cert-bundle: /etc/pki/tls/certs/ca-bundle.crt
+  tls-ciphers: PROFILE=SYSTEM
+  outgoing-port-permit: 32768-60999
+  outgoing-port-avoid:
+    - 0-32767
+    - 61000-65535
+__unbound_validate_command: /usr/sbin/unbound-checkconf %s

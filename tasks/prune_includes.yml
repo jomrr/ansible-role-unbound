@@ -1,0 +1,26 @@
+---
+# role: unbound
+# file: tasks/prune_includes.yml
+
+- name: UNBOUND | Find native configuration includes
+  become: true
+  become_user: root
+  ansible.builtin.find:
+    paths: '{{ [__unbound_conf_dir] + (__unbound_server_includes | map("dirname") | list) }}'
+    patterns: '*.conf'
+    file_type: any
+  register: __unbound_existing_includes
+
+- name: UNBOUND | Delete undeclared native includes
+  become: true
+  become_user: root
+  ansible.builtin.file:
+    path: '{{ __unbound_obsolete_include }}'
+    state: absent
+  loop: >-
+    {{ __unbound_existing_includes.files | rejectattr('isdir') | map(attribute='path')
+       | difference(__unbound_required_includes
+                    + (unbound_include_files | map(attribute='path') | list)) }}
+  loop_control:
+    loop_var: __unbound_obsolete_include
+  notify: restart resolver

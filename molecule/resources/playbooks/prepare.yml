@@ -1,0 +1,225 @@
+---
+# role: unbound
+# file: molecule/resources/playbooks/prepare.yml
+
+- name: UNBOUND | Prepare isolated DNS and HTTPS upstreams
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: UNBOUND | Load platform packages
+      ansible.builtin.include_vars:
+        file: '{{ playbook_dir }}/../../../vars/{{ ansible_facts.os_family }}.yml'
+
+    - name: UNBOUND | Refresh Debian package metadata
+      become: true
+      become_user: root
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: UNBOUND | Install fixture dependencies
+      become: true
+      become_user: root
+      ansible.builtin.package:
+        name: '{{ __unbound_packages + [''python3-cryptography'', ''openssl''] }}'
+        state: present
+
+    - name: UNBOUND | Create fixture directories
+      become: true
+      become_user: root
+      ansible.builtin.file:
+        path: '{{ __unbound_fixture_dir }}'
+        state: directory
+        owner: root
+        group: unbound
+        mode: '0750'
+      loop:
+        - /etc/unbound/tls
+        - /etc/unbound/molecule
+      loop_control:
+        loop_var: __unbound_fixture_dir
+
+    - name: UNBOUND | Install obsolete include fixtures
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: '{{ __unbound_include_dir }}/obsolete.conf'
+        owner: root
+        group: unbound
+        mode: '0640'
+        content: |
+          obsolete-option: "must be removed before configuration validation"
+      loop: '{{ [__unbound_conf_dir] + (__unbound_server_includes | map("dirname") | list) }}'
+      loop_control:
+        loop_var: __unbound_include_dir
+
+    - name: UNBOUND | Create zone cache fixture directories
+      become: true
+      become_user: root
+      ansible.builtin.file:
+        path: '{{ __unbound_cache_dir }}'
+        state: directory
+        owner: unbound
+        group: unbound
+        mode: '0750'
+      loop:
+        - /var/lib/unbound/rpz
+        - /var/lib/unbound/auth
+      loop_control:
+        loop_var: __unbound_cache_dir
+
+    - name: UNBOUND | Install obsolete zone fixtures
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: '{{ __unbound_obsolete_file }}'
+        owner: unbound
+        group: unbound
+        mode: '0640'
+        content: |
+          ; Managed by ansible.
+          ; file: {{ __unbound_obsolete_file }}
+          ; Obsolete zone from a previous configuration.
+      loop:
+        - /etc/unbound/obsolete-zone
+        - /var/lib/unbound/rpz/obsolete.zone
+        - /var/lib/unbound/auth/obsolete.zone
+      loop_control:
+        loop_var: __unbound_obsolete_file
+
+    - name: UNBOUND | Generate fixture private key
+      become: true
+      become_user: root
+      community.crypto.openssl_privatekey:
+        path: /etc/unbound/tls/molecule.key
+        owner: root
+        group: unbound
+        mode: '0640'
+
+    - name: UNBOUND | Generate fixture certificate request
+      become: true
+      become_user: root
+      community.crypto.openssl_csr:
+        path: /etc/unbound/tls/molecule.csr
+        privatekey_path: /etc/unbound/tls/molecule.key
+        common_name: resolver.molecule.test
+        subject_alt_name:
+          - DNS:resolver.molecule.test
+          - DNS:upstream.molecule.test
+          - IP:127.0.0.1
+        basic_constraints:
+          - CA:TRUE
+        basic_constraints_critical: true
+        key_usage:
+          - digitalSignature
+          - keyCertSign
+          - cRLSign
+        key_usage_critical: true
+        owner: root
+        group: unbound
+        mode: '0644'
+
+    - name: UNBOUND | Generate fixture certificate
+      become: true
+      become_user: root
+      community.crypto.x509_certificate:
+        path: /etc/unbound/tls/molecule.pem
+        privatekey_path: /etc/unbound/tls/molecule.key
+        csr_path: /etc/unbound/tls/molecule.csr
+        provider: selfsigned
+        owner: root
+        group: unbound
+        mode: '0644'
+
+    - name: UNBOUND | Configure isolated upstream resolver
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: /etc/unbound/molecule/upstream.conf
+        owner: root
+        group: unbound
+        mode: '0640'
+        content: |
+          server:
+              username: "unbound"
+              chroot: ""
+              directory: "/etc/unbound"
+              pidfile: "/var/lib/unbound/molecule-upstream.pid"
+              interface: 127.0.0.1@1053
+              interface: 127.0.0.1@1853
+              interface: 127.0.0.2@1853
+              tls-port: 1853
+              tls-service-key: "/etc/unbound/tls/molecule.key"
+              tls-service-pem: "/etc/unbound/tls/molecule.pem"
+              module-config: "iterator"
+              do-not-query-localhost: no
+              use-syslog: no
+              logfile: ""
+              local-zone: "test." static
+              local-zone: "stub.test." static
+              local-zone: "2.0.192.in-addr.arpa." static
+              local-data: "www.forward.test. 60 IN A 192.0.2.80"
+              local-data: "www.stub.test. 60 IN A 192.0.2.81"
+              local-data: "www.encrypted.test. 60 IN A 192.0.2.83"
+              local-data: "www.bogus.test. 60 IN A 192.0.2.87"
+              local-data: "www.bad-tls.test. 60 IN A 192.0.2.85"
+              local-data: "allowed.forward.test. 60 IN A 192.0.2.84"
+              local-data: "blocked.forward.test. 60 IN A 192.0.2.86"
+              local-data: "private-allowed.forward.test. 60 IN A 10.23.0.7"
+              local-data: "private.forward.test. 60 IN A 10.23.0.8"
+              local-data: "10.2.0.192.in-addr.arpa. 60 IN PTR dc1.forward.test."
+        validate: /usr/sbin/unbound-checkconf %s
+
+    - name: UNBOUND | Install HTTPS policy feed
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: /etc/unbound/molecule/block.rpz
+        owner: root
+        group: unbound
+        mode: '0644'
+        content: |
+          $ORIGIN block.rpz.test.
+          @ 60 IN SOA localhost. hostmaster.localhost. 1 60 60 3600 60
+          @ 60 IN NS localhost.
+          blocked.forward.test 60 IN CNAME .
+          allowed.forward.test 60 IN CNAME .
+
+    - name: UNBOUND | Install fixture services
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/{{ __unbound_fixture.name }}.service
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Unbound Molecule fixture
+          [Service]
+          WorkingDirectory=/etc/unbound/molecule
+          ExecStart={{ __unbound_fixture.command }}
+          Restart=on-failure
+      loop:
+        - name: unbound-molecule-upstream
+          command: /usr/sbin/unbound -d -c /etc/unbound/molecule/upstream.conf
+        - name: unbound-molecule-https
+          command: /usr/bin/openssl s_server -accept 127.0.0.1:18443 -cert /etc/unbound/tls/molecule.pem
+            -key /etc/unbound/tls/molecule.key -WWW -quiet
+      loop_control:
+        loop_var: __unbound_fixture
+        label: '{{ __unbound_fixture.name }}'
+
+    - name: UNBOUND | Start fixture services
+      become: true
+      become_user: root
+      ansible.builtin.systemd_service:
+        name: '{{ __unbound_fixture_service }}'
+        daemon_reload: true
+        state: started
+      loop:
+        - unbound-molecule-upstream
+        - unbound-molecule-https
+      loop_control:
+        loop_var: __unbound_fixture_service
