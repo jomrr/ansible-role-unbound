@@ -47,6 +47,18 @@ collections:
 
 ## Role Variables
 
+### `unbound_backup`
+
+Type: `bool`. Required: `false`.
+
+Back up existing configuration and local zone files before replacing them.
+
+Default:
+
+```yaml
+unbound_backup: true
+```
+
 ### `unbound_interfaces`
 
 Type: `list`. Required: `false`.

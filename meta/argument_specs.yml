@@ -6,6 +6,11 @@ argument_specs:
   main:
     short_description: Configure a validating Unbound resolver and DNS-over-TLS service.
     options:
+      unbound_backup:
+        type: bool
+        description: Back up existing configuration and local zone files before replacing
+          them.
+        default: true
       unbound_interfaces:
         type: list
         description: Listener addresses in address@port notation. Add a TLS-port listener

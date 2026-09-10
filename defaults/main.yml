@@ -2,6 +2,10 @@
 # role: unbound
 # file: defaults/main.yml
 
+# Back up existing configuration and local zone files before replacing them.
+unbound_backup: true
+# unbound_backup: false
+
 # DNS and DoT listener addresses in native address@port notation.
 unbound_interfaces:
   - 127.0.0.1@53

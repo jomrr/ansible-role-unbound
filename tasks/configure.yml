@@ -11,7 +11,7 @@
     owner: root
     group: unbound
     mode: '0640'
-    backup: true
+    backup: '{{ unbound_backup }}'
   loop: '{{ (unbound_auth_zones + unbound_rpz_zones) | selectattr("content", "defined") | list }}'
   loop_control:
     loop_var: __unbound_zone_file
@@ -27,7 +27,7 @@
     owner: root
     group: unbound
     mode: '0640'
-    backup: true
+    backup: '{{ unbound_backup }}'
   loop: '{{ unbound_include_files }}'
   loop_control:
     loop_var: __unbound_include_file
@@ -46,7 +46,7 @@
     owner: root
     group: unbound
     mode: '0640'
-    backup: true
+    backup: '{{ unbound_backup }}'
     validate: '{{ __unbound_validate_command }}'
   notify: restart resolver
 
@@ -59,7 +59,7 @@
     owner: root
     group: unbound
     mode: '0640'
-    backup: true
+    backup: '{{ unbound_backup }}'
     validate: '{{ __unbound_validate_command }}'
   notify: restart resolver
 
