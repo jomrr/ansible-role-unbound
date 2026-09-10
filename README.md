@@ -231,8 +231,8 @@ unbound_stub_zones: []
 
 Type: `list`. Required: `false`.
 
-Authority zones loaded from static files, AXFR/IXFR or HTTP(S) zonefile
-downloads.
+Authority zones with local content rendered into zonefile, or AXFR/IXFR and
+HTTP(S) sources.
 
 Default:
 
@@ -244,8 +244,9 @@ unbound_auth_zones: []
 
 Type: `list`. Required: `false`.
 
-Response policy zones in evaluation order. Local allow zones must precede
-external block feeds; HTTP(S) sources must provide real RPZ zone files.
+Response policy zones in evaluation order; place local allow zones before block
+feeds. Local content is rendered into zonefile. HTTP(S) URLs must serve complete
+RPZ files, which Unbound downloads and refreshes into the zonefile cache.
 
 Default:
 
@@ -290,20 +291,6 @@ Default:
 unbound_local_data_ptr: []
 ```
 
-### `unbound_zone_files`
-
-Type: `list`. Required: `false`.
-
-Static zone files written below /etc/unbound. Each content value is a complete
-DNS zone file. Files written by the role are removed when no longer declared or
-referenced by an auth/RPZ zone.
-
-Default:
-
-```yaml
-unbound_zone_files: []
-```
-
 ### `unbound_include_files`
 
 Type: `list`. Required: `false`.
@@ -338,7 +325,8 @@ unbound_includes: []
 - `/etc/unbound/conf.d/*.conf and /etc/unbound/local.d/*.conf` AlmaLinux, Fedora
   and openSUSE includes; local.d contains server options without a section
   header
-- `/etc/unbound/<unbound_zone_files.name>` Static zone files
+- `/etc/unbound/<zonefile>` Local RPZ and authority files rendered from each
+  zone's content
 - `/var/lib/unbound/rpz and /var/lib/unbound/auth` Downloaded or transferred
   zone caches
 
@@ -370,21 +358,22 @@ separately.
   Debian/Ubuntu root-auto-trust-anchor-file.conf. Additional unbound_includes
   paths
   and globs are for files outside those directories.
-- Static zone files written by the role are deleted once absent from
-  unbound_zone_files
-  and no longer referenced by an auth/RPZ zone. Unreferenced files in
-  /var/lib/unbound/rpz
-  and /var/lib/unbound/auth are also deleted. TLS files and DNSSEC anchors are
-  retained.
+- Managed local files under /etc/unbound and caches under /var/lib/unbound/rpz
+  and
+  /var/lib/unbound/auth are deleted when no auth/RPZ zone references their
+  zonefile path.
+  TLS files and DNSSEC anchors are retained.
 - Use one TLS authentication name per upstream IP/port with packages lacking the
   [Unbound 1.25 connection-reuse
   fix](https://www.nlnetlabs.nl/news/2026/Apr/29/unbound-1.25.0-released/).
   Older implementations may reuse a connection authenticated for a different
   name.
-- RPZ allow rules must precede block feeds. HTTP(S) feeds must provide complete
-  RPZ
-  zones with SOA/NS records. Use /var/lib/unbound/rpz for writable download
-  caches.
+- Each RPZ entry contains its options and either local content or an external
+  url/primary.
+  Local content is rendered into zonefile. Place allow zones before block feeds;
+  URLs must
+  serve complete RPZ files with SOA/NS records. Use /var/lib/unbound/rpz for
+  download caches.
 
 ## Supported Platforms
 
@@ -467,16 +456,14 @@ use port 53.
             - 149.112.112.112@853#dns.quad9.net
           forward-tls-upstream: true
           forward-first: false
-      unbound_zone_files:
-        - name: rpz-allow.zone
+      unbound_rpz_zones:
+        - name: local-allow.rpz.invalid.
+          zonefile: /etc/unbound/rpz-allow.zone
           content: |
             $ORIGIN local-allow.rpz.invalid.
             @ 3600 IN SOA localhost. hostmaster.localhost. 1 3600 600 86400 60
             @ 3600 IN NS localhost.
             trusted.example.org 60 IN CNAME rpz-passthru.
-      unbound_rpz_zones:
-        - name: local-allow.rpz.invalid.
-          zonefile: /etc/unbound/rpz-allow.zone
           rpz-log: false
           for-downstream: false
         - name: security.rpz.example.org.
@@ -501,8 +488,9 @@ unbound_stub_zones:
     stub-prime: false
 unbound_server:
   domain-insecure: [lab.example.org., local.example.org.]
-unbound_zone_files:
-  - name: local.example.org.zone
+unbound_auth_zones:
+  - name: local.example.org.
+    zonefile: /etc/unbound/local.example.org.zone
     content: |
       $ORIGIN local.example.org.
       @ 300 IN SOA ns.local.example.org. hostmaster.local.example.org. (
@@ -510,9 +498,6 @@ unbound_zone_files:
       @ 300 IN NS ns.local.example.org.
       ns 300 IN A 192.0.2.53
       app 300 IN A 192.0.2.80
-unbound_auth_zones:
-  - name: local.example.org.
-    zonefile: /etc/unbound/local.example.org.zone
     for-downstream: true
     for-upstream: true
 ```

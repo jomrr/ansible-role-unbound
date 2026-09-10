@@ -2,20 +2,17 @@
 # role: unbound
 # file: tasks/configure.yml
 
-- name: UNBOUND | Install static zone files
+- name: UNBOUND | Render static zone files
   become: true
   become_user: root
-  ansible.builtin.copy:
-    content: |
-      ; Managed by ansible.
-      ; file: /etc/unbound/{{ __unbound_zone_file.name }}
-      {{ __unbound_zone_file.content }}
-    dest: /etc/unbound/{{ __unbound_zone_file.name }}
+  ansible.builtin.template:
+    src: zonefile.j2
+    dest: '{{ __unbound_zone_file.zonefile }}'
     owner: root
     group: unbound
     mode: '0640'
     backup: true
-  loop: '{{ unbound_zone_files }}'
+  loop: '{{ (unbound_auth_zones + unbound_rpz_zones) | selectattr("content", "defined") | list }}'
   loop_control:
     loop_var: __unbound_zone_file
     label: '{{ __unbound_zone_file.name }}'

@@ -10,7 +10,7 @@
 ] %}
 {% for __unbound_entry in __unbound_entries %}
 {{ __unbound_section }}:
-{% for __unbound_key, __unbound_value in __unbound_entry.items() %}
+{% for __unbound_key, __unbound_value in __unbound_entry.items() if __unbound_key != 'content' %}
 {% for __unbound_element in (__unbound_value if __unbound_value is sequence and __unbound_value is not string else [__unbound_value]) %}
     {{ __unbound_key }}: {% if __unbound_element is boolean %}{{ __unbound_element | ternary('yes', 'no') }}{% elif __unbound_element is string %}{{ __unbound_element | to_json }}{% else %}{{ __unbound_element }}{% endif %}
 

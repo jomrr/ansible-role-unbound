@@ -32,8 +32,7 @@
     state: absent
   loop: >-
     {{ (__unbound_existing_zones.files + __unbound_cached_zones.files) | map(attribute='path')
-       | difference((unbound_zone_files | map(attribute='name') | map('regex_replace', '^', '/etc/unbound/') | list)
-                    + ((unbound_auth_zones + unbound_rpz_zones) | selectattr('zonefile', 'defined')
-                       | map(attribute='zonefile') | list)) }}
+       | difference((unbound_auth_zones + unbound_rpz_zones) | selectattr('zonefile', 'defined')
+                    | map(attribute='zonefile') | list) }}
   loop_control:
     loop_var: __unbound_obsolete_zone

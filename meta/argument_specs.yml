@@ -201,10 +201,18 @@ argument_specs:
             description: Prime nameservers for this authoritative zone.
       unbound_auth_zones:
         type: list
-        description: Authority zones loaded from static files, AXFR/IXFR or HTTP(S) zonefile
-          downloads.
+        description: Authority zones with local content rendered into zonefile, or AXFR/IXFR
+          and HTTP(S) sources.
         default: []
         elements: dict
+        required_by:
+          content:
+            - zonefile
+        mutually_exclusive:
+          - - content
+            - url
+          - - content
+            - primary
         options:
           name:
             type: str
@@ -214,6 +222,11 @@ argument_specs:
             type: str
             description: Absolute path to a static zone file or writable transfer/download
               cache.
+          content:
+            type: str
+            description: Complete local zone including SOA and NS records, rendered into
+              zonefile before configuration validation. Use /etc/unbound for local files;
+              parent directories must exist. Mutually exclusive with url and primary.
           primary:
             type: list
             description: AXFR/IXFR primary endpoints.
@@ -243,10 +256,20 @@ argument_specs:
             description: Require a ZONEMD digest.
       unbound_rpz_zones:
         type: list
-        description: Response policy zones in evaluation order. Local allow zones must precede
-          external block feeds; HTTP(S) sources must provide real RPZ zone files.
+        description: Response policy zones in evaluation order; place local allow zones
+          before block feeds. Local content is rendered into zonefile. HTTP(S) URLs must
+          serve complete RPZ files, which Unbound downloads and refreshes into the zonefile
+          cache.
         default: []
         elements: dict
+        required_by:
+          content:
+            - zonefile
+        mutually_exclusive:
+          - - content
+            - url
+          - - content
+            - primary
         options:
           name:
             type: str
@@ -256,6 +279,11 @@ argument_specs:
             type: str
             description: Absolute path to a static zone file or writable transfer/download
               cache.
+          content:
+            type: str
+            description: Complete local RPZ including SOA, NS and policy records, rendered
+              into zonefile before configuration validation. Use /etc/unbound for local
+              files; parent directories must exist. Mutually exclusive with url and primary.
           primary:
             type: list
             description: AXFR/IXFR primary endpoints.
@@ -349,23 +377,6 @@ argument_specs:
         description: PTR shorthand records in address hostname notation.
         default: []
         elements: str
-      unbound_zone_files:
-        type: list
-        description: Static zone files written below /etc/unbound. Each content value is
-          a complete DNS zone file. Files written by the role are removed when no longer
-          declared or referenced by an auth/RPZ zone.
-        default: []
-        elements: dict
-        options:
-          name:
-            type: str
-            description: Zone filename relative to /etc/unbound; parent directories must
-              exist.
-            required: true
-          content:
-            type: str
-            description: Complete zone content including SOA and NS records.
-            required: true
       unbound_include_files:
         type: list
         description: Configuration files in the native conf.d or local.d directories. Undeclared

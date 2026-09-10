@@ -121,7 +121,8 @@ unbound_stub_zones: []
 #   stub-addr: [192.0.2.10@53, 192.0.2.11@53]
 #   stub-first: false
 
-# Authority zones for zonefile, AXFR/IXFR or HTTP(S) sources.
+# Authority zones with local content, AXFR/IXFR or HTTP(S) sources.
+# content renders a local zonefile, as in the RPZ example below.
 unbound_auth_zones: []
 # - name: example.org.
 #   primary: [192.0.2.10]
@@ -129,11 +130,24 @@ unbound_auth_zones: []
 #   for-downstream: false
 #   for-upstream: true
 
-# Ordered response policy zones; place local allow rules before external feeds.
+# Ordered RPZ policies; place local allow rules before external feeds.
+# content renders zonefile; url downloads a complete RPZ into the zonefile cache.
 unbound_rpz_zones: []
 # - name: local-allow.rpz.invalid.
 #   zonefile: /etc/unbound/rpz-allow.zone
+#   content: |
+#     $ORIGIN local-allow.rpz.invalid.
+#     @ 3600 IN SOA localhost. hostmaster.localhost. 1 3600 600 86400 60
+#     @ 3600 IN NS localhost.
+#     trusted.example.org 60 IN CNAME rpz-passthru.
 #   rpz-log: false
+#   for-downstream: false
+# - name: security.rpz.example.org.
+#   url: [https://feeds.example.org/security.rpz]
+#   zonefile: /var/lib/unbound/rpz/blocklist.zone
+#   rpz-action-override: nxdomain
+#   rpz-log: true
+#   rpz-log-name: security-feed
 #   for-downstream: false
 
 # Local zone policies, including transparent overrides of built-in reverse zones.
@@ -148,15 +162,6 @@ unbound_local_data: []
 # PTR shorthand records in native address hostname notation.
 unbound_local_data_ptr: []
 # - 192.0.2.53 resolver.example.org.
-
-# Static zone files relative to /etc/unbound, with complete DNS zone content.
-unbound_zone_files: []
-# - name: rpz-allow.zone
-#   content: |
-#     $ORIGIN local-allow.rpz.invalid.
-#     @ 3600 IN SOA localhost. hostmaster.localhost. 1 3600 600 86400 60
-#     @ 3600 IN NS localhost.
-#     trusted.example.org 60 IN CNAME rpz-passthru.
 
 # Configuration files in native include directories, removed when undeclared.
 unbound_include_files: []
