@@ -32,13 +32,16 @@
 {% for __unbound_record in unbound_local_data_ptr %}
     local-data-ptr: {{ __unbound_record | to_json }}
 {% endfor %}
-{% for __unbound_include in __unbound_server_includes %}
-    include: {{ __unbound_include | to_json }}
+{% for __unbound_include_file in unbound_include_files if (__unbound_include_file.path | dirname) in __unbound_server_include_directories %}
+    include: {{ __unbound_include_file.path | to_json }}
 {% endfor %}
 {% endif %}
 
 {% endfor %}
 {% endfor %}
-{% for __unbound_include in [__unbound_conf_dir ~ '/*.conf'] + unbound_includes %}
+{% for __unbound_include_file in unbound_include_files if (__unbound_include_file.path | dirname) not in __unbound_server_include_directories %}
+include-toplevel: {{ __unbound_include_file.path | to_json }}
+{% endfor %}
+{% for __unbound_include in __unbound_required_includes + unbound_includes %}
 include-toplevel: {{ __unbound_include | to_json }}
 {% endfor %}

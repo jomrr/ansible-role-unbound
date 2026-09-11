@@ -34,9 +34,6 @@
     label: '{{ __unbound_include_file.path }}'
   notify: restart resolver
 
-- name: UNBOUND | Remove obsolete configuration includes
-  ansible.builtin.import_tasks: prune_includes.yml
-
 - name: UNBOUND | Configure local control interface
   become: true
   become_user: root

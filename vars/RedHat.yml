@@ -15,8 +15,8 @@ __unbound_config_directories:
   - /etc/unbound/keys.d
   - /etc/unbound/tls
 __unbound_control_socket: /run/unbound/control.sock
-__unbound_server_includes:
-  - /etc/unbound/local.d/*.conf
+__unbound_server_include_directories:
+  - /etc/unbound/local.d
 __unbound_anchor_seeds: []
 __unbound_platform_server:
   username: unbound

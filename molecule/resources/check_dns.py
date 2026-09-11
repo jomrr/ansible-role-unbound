@@ -66,16 +66,16 @@ def main() -> None:
     )
     assert not Path(control_socket).exists(), control_socket
     print("PASS remote control disabled")
-    for obsolete in (
-        "/etc/unbound/unbound.conf.d/obsolete.conf",
-        "/etc/unbound/conf.d/obsolete.conf",
-        "/etc/unbound/local.d/obsolete.conf",
+    include_directories = (
+        ("/etc/unbound/unbound.conf.d",) if sys.argv[2] == "Debian"
+        else ("/etc/unbound/conf.d", "/etc/unbound/local.d")
+    )
+    for directory in include_directories:
+        assert (Path(directory) / "obsolete.conf").is_file(), directory
+    for retained in (
         "/etc/unbound/obsolete-zone",
         "/var/lib/unbound/rpz/obsolete.zone",
         "/var/lib/unbound/auth/obsolete.zone",
-    ):
-        assert not Path(obsolete).exists(), obsolete
-    for retained in (
         "/etc/unbound/auth-test.zone", "/etc/unbound/allow-test.rpz",
         "/etc/unbound/tls/molecule.key", "/etc/unbound/tls/molecule.pem",
         "/var/lib/unbound/root.key",
@@ -83,7 +83,7 @@ def main() -> None:
         assert Path(retained).is_file(), retained
     if sys.argv[2] == "Debian":
         assert Path("/etc/unbound/unbound.conf.d/root-auto-trust-anchor-file.conf").is_file()
-    print("PASS obsolete includes/zones removed; active zones, TLS and DNSSEC files retained")
+    print("PASS undeclared files, active zones, TLS and DNSSEC files retained")
     for transport in ("udp", "tcp", "tls"):
         expect("local.molecule.test", "192.0.2.53", transport)
     expect("included.molecule.test", "192.0.2.90")

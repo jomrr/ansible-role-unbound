@@ -49,8 +49,8 @@
         group: unbound
         mode: '0640'
         content: |
-          obsolete-option: "must be removed before configuration validation"
-      loop: '{{ [__unbound_conf_dir] + (__unbound_server_includes | map("dirname") | list) }}'
+          obsolete-option: "must not be included"
+      loop: '{{ [__unbound_conf_dir] + __unbound_server_include_directories }}'
       loop_control:
         loop_var: __unbound_include_dir
 

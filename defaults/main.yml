@@ -167,13 +167,13 @@ unbound_local_data: []
 unbound_local_data_ptr: []
 # - 192.0.2.53 resolver.example.org.
 
-# Configuration files in native include directories, removed when undeclared.
+# Configuration files written and included by their exact paths; undeclared files remain.
 unbound_include_files: []
 # - path: /etc/unbound/conf.d/site.conf
 #   content: |
 #     server:
 #         local-data: "resolver.example.org. 300 IN A 192.0.2.53"
 
-# Additional top-level include paths outside the native include directories.
+# Additional top-level include paths or globs; globs load all matching files.
 unbound_includes: []
 # - /etc/unbound/site.d/*.conf

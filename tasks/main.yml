@@ -22,6 +22,3 @@
     name: unbound
     enabled: true
     state: started
-
-- name: UNBOUND | Remove obsolete zone files
-  ansible.builtin.import_tasks: prune_zones.yml

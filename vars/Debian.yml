@@ -14,7 +14,7 @@ __unbound_config_directories:
   - /etc/unbound/unbound.conf.d
   - /etc/unbound/tls
 __unbound_control_socket: /run/unbound.ctl
-__unbound_server_includes: []
+__unbound_server_include_directories: []
 __unbound_anchor_seeds:
   - src: /usr/share/dns/root.key
     dest: /var/lib/unbound/root.key

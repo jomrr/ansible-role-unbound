@@ -384,9 +384,9 @@ argument_specs:
         elements: str
       unbound_include_files:
         type: list
-        description: Configuration files in the native conf.d or local.d directories. Undeclared
-          native .conf files are removed except the role control configuration and packaged
-          Debian DNSSEC anchor include.
+        description: Configuration files written and included by their exact paths. Files
+          in the native local.d directory contain server options; other files require section
+          headers. Undeclared files are retained.
         default: []
         elements: dict
         options:
@@ -402,7 +402,7 @@ argument_specs:
             required: true
       unbound_includes:
         type: list
-        description: Additional top-level include paths or globs outside the native include
-          directories.
+        description: Additional top-level include paths or globs. Explicit globs load all
+          matching files.
         default: []
         elements: str

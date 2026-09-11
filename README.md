@@ -19,7 +19,7 @@ stub/forward/auth zones, local records, RPZ policies and hardening.
 ### Managed
 
 - Unbound packages, configuration, DNSSEC trust anchors and service
-- Declared includes, static zone files and downloaded zone caches
+- Declared includes, static zone files and directories for zone downloads
 
 ### Not Managed
 
@@ -307,9 +307,9 @@ unbound_local_data_ptr: []
 
 Type: `list`. Required: `false`.
 
-Configuration files in the native conf.d or local.d directories. Undeclared
-native .conf files are removed except the role control configuration and
-packaged Debian DNSSEC anchor include.
+Configuration files written and included by their exact paths. Files in the
+native local.d directory contain server options; other files require section
+headers. Undeclared files are retained.
 
 Default:
 
@@ -321,8 +321,8 @@ unbound_include_files: []
 
 Type: `list`. Required: `false`.
 
-Additional top-level include paths or globs outside the native include
-directories.
+Additional top-level include paths or globs. Explicit globs load all matching
+files.
 
 Default:
 
@@ -333,14 +333,15 @@ unbound_includes: []
 ## Managed Files
 
 - `/etc/unbound/unbound.conf` Main configuration
-- `/etc/unbound/unbound.conf.d/*.conf` Debian and Ubuntu includes
-- `/etc/unbound/conf.d/*.conf and /etc/unbound/local.d/*.conf` AlmaLinux, Fedora
-  and openSUSE includes; local.d contains server options without a section
-  header
+- `/etc/unbound/unbound.conf.d/` Declared Debian/Ubuntu includes,
+  remote-control.conf and the packaged root-auto-trust-anchor-file.conf
+- `/etc/unbound/conf.d/ and /etc/unbound/local.d/` Declared
+  AlmaLinux/Fedora/openSUSE includes and conf.d/remote-control.conf; local.d
+  contains server options without a section header
 - `/etc/unbound/<zonefile>` Local RPZ and authority files rendered from each
   zone's content
-- `/var/lib/unbound/rpz and /var/lib/unbound/auth` Downloaded or transferred
-  zone caches
+- `/var/lib/unbound/rpz and /var/lib/unbound/auth` Directories for caches
+  downloaded or transferred by Unbound
 
 ## Service Behavior
 
@@ -364,17 +365,12 @@ separately.
 
 ## Operational Notes
 
-- Declare native include files in unbound_include_files. Undeclared .conf files
-  in
-  the native include directories are deleted, except remote-control.conf and the
-  Debian/Ubuntu root-auto-trust-anchor-file.conf. Additional unbound_includes
-  paths
-  and globs are for files outside those directories.
-- Managed local files under /etc/unbound and caches under /var/lib/unbound/rpz
-  and
-  /var/lib/unbound/auth are deleted when no auth/RPZ zone references their
-  zonefile path.
-  TLS files and DNSSEC anchors are retained.
+- Declare include files in unbound_include_files; the role loads their exact
+  paths.
+  Removing an include or zone declaration leaves its files on disk but removes
+  its
+  configuration reference. Additional unbound_includes globs still load every
+  matching file.
 - Use one TLS authentication name per upstream IP/port with packages lacking the
   [Unbound 1.25 connection-reuse
   fix](https://www.nlnetlabs.nl/news/2026/Apr/29/unbound-1.25.0-released/).
