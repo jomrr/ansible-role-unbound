@@ -42,6 +42,8 @@
 {% for __unbound_include_file in unbound_include_files if (__unbound_include_file.path | dirname) not in __unbound_server_include_directories %}
 include-toplevel: {{ __unbound_include_file.path | to_json }}
 {% endfor %}
-{% for __unbound_include in __unbound_required_includes + unbound_includes %}
+{% for __unbound_include in (__unbound_required_includes + unbound_includes)
+    | unique(case_sensitive=true)
+    | reject('in', unbound_include_files | map(attribute='path') | list) %}
 include-toplevel: {{ __unbound_include | to_json }}
 {% endfor %}

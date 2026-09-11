@@ -120,10 +120,14 @@ provisioner:
             rpz-log: true
             for-downstream: false
         unbound_include_files:
-          - path: "/etc/unbound/{{ (ansible_facts.os_family == 'Debian') | ternary('unbound.conf.d', 'conf.d') }}/molecule.conf"
+          - path: "/etc/unbound/{{ (ansible_facts.os_family == 'Debian') | ternary('unbound.conf.d/root-auto-trust-anchor-file.conf',\
+              \ 'conf.d/molecule.conf') }}"
             content: |
               server:
                   local-data: "included.molecule.test. 60 IN A 192.0.2.90"
+              {% if ansible_facts.os_family == 'Debian' %}
+                  auto-trust-anchor-file: "/var/lib/unbound/root.key"
+              {% endif %}
           - path: "/etc/unbound/{{ (ansible_facts.os_family == 'Debian') | ternary('unbound.conf.d', 'local.d') }}/server-molecule.conf"
             content: |
               {% if ansible_facts.os_family == 'Debian' %}
