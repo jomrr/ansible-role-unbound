@@ -3,8 +3,8 @@
 ![GitHub](https://img.shields.io/github/license/jomrr/ansible-role-unbound)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jomrr/ansible-role-unbound)
 ![GitHub issues](https://img.shields.io/github/issues-raw/jomrr/ansible-role-unbound)
-[![dev](https://img.shields.io/github/actions/workflow/status/jomrr/ansible-role-unbound/dev.yml?branch=dev&event=push&label=dev)](https://github.com/jomrr/ansible-role-unbound/actions/workflows/dev.yml?query=branch%3Adev)
-[![main](https://img.shields.io/github/actions/workflow/status/jomrr/ansible-role-unbound/main.yml?branch=main&event=push&label=main)](https://github.com/jomrr/ansible-role-unbound/actions/workflows/main.yml?query=branch%3Amain)
+[![dev](https://img.shields.io/github/actions/workflow/status/jomrr/ansible-role-unbound/dev.yml?branch=dev&label=dev)](https://github.com/jomrr/ansible-role-unbound/actions/workflows/dev.yml?query=branch%3Adev)
+[![main](https://img.shields.io/github/actions/workflow/status/jomrr/ansible-role-unbound/main.yml?branch=main&label=main)](https://github.com/jomrr/ansible-role-unbound/actions/workflows/main.yml?query=branch%3Amain)
 
 Ansible role for a hardened Unbound DNS resolver with DoT, DNSSEC and response
 policy zones.
